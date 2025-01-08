@@ -1,9 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import "./dashboard.css";
 import "../../App.css";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 import {
   BsFillArchiveFill,
   BsPeopleFill,
@@ -19,13 +17,33 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  Customized,
-  Rectangle,
-  PieChart, Pie, Sector, Cell
+  PieChart,
+  Pie,
+  Sector,
+  Cell,
 } from "recharts";
 import SideBarPage from "../../components/Sidebar/SideBarPage";
 
+// Dados de exemplo aleatórios para os gráficos
+const fluxoCaixaExemplo = [
+  { name: "Jan", fluxoCaixa: 4000, receitas: 2400, despesas: 2400 },
+  { name: "Feb", fluxoCaixa: 3000, receitas: 1398, despesas: 2210 },
+  { name: "Mar", fluxoCaixa: 2000, receitas: 9800, despesas: 2290 },
+  { name: "Apr", fluxoCaixa: 2780, receitas: 3908, despesas: 2000 },
+  { name: "May", fluxoCaixa: 1890, receitas: 4800, despesas: 2181 },
+  { name: "Jun", fluxoCaixa: 2390, receitas: 3800, despesas: 2500 },
+  { name: "Jul", fluxoCaixa: 3490, receitas: 4300, despesas: 2100 },
+];
+
+const typeUserDataExemplo = [
+  { name: "Ativos", value: 50 },
+  { name: "Inativos", value: 30 },
+  { name: "Em licença", value: 20 },
+];
+
 const RADIAN = Math.PI / 180;
+
+// Função de renderização personalizada para o gráfico de pizza
 const renderActiveShape = (props) => {
   const {
     cx,
@@ -85,7 +103,7 @@ const renderActiveShape = (props) => {
         textAnchor={textAnchor}
         fill="#333"
       >
-        {payload.value} {/* Exibe o número de funcionários */}
+        {payload.value}
       </text>
       <text
         x={ex + (cos >= 0 ? 1 : -1) * 12}
@@ -103,308 +121,22 @@ const renderActiveShape = (props) => {
 function Home() {
   const navigate = useNavigate();
 
-  const [userInfo, setUserInfo] = useState("");
-  const [SelectedTotalEstoque, setSelectedTotalEstoque] = useState(0);
-  const [SelectedTotalFuncionario, setSelectedTotalFuncionario] = useState(0);
-  const [SelectedTotalVenda, setSelectedTotalVenda] = useState(0);
-  const [SelectedTotalLogs, setSelectedTotalLogs] = useState(0);
-  const [fluxoCaixa, setFluxoCaixa] = useState([]);
-  const [typeUserData, setTypeUserData] = useState([]);
+  const [userInfo, setUserInfo] = useState({ Nome_user: "Usuário Exemplo" }); // Exemplo de nome de usuário
+  const [SelectedTotalEstoque, setSelectedTotalEstoque] = useState(120); // Exemplo de total de itens no estoque
+  const [SelectedTotalFuncionario, setSelectedTotalFuncionario] = useState(50); // Exemplo de total de funcionários
+  const [SelectedTotalVenda, setSelectedTotalVenda] = useState(200); // Exemplo de total de vendas
+  const [SelectedTotalLogs, setSelectedTotalLogs] = useState(5); // Exemplo de total de logs
   const [activeIndex, setActiveIndex] = useState(0);
-  const [vendasCrescimento, setVendasCrescimento] = useState([]);
 
   // Array de cores
-  const COLORS_GRAFICO = ["#FF8042", "#00C49F", "#FFBB28", "#0088FE", "#FF00FF", "#40E0D0"];
-
-    // Define as cores para Despesas
-const COLORS = {
-  "Contas em Aberto": "#103b74", // Azul
-  "Contas Atrasadas": "#8f1515", // Vermelho
-};
-
-  // Funções para buscar dados de estoque, funcionários, vendas, logs, etc.
-
-  const fetchDadosEstoque = async (id) => {
-    try {
-      const response = await axios.get(`/api/ServerOne/tableEstoque/${id}`, {
-        withCredentials: true,
-      });
-      if (response.status === 200) {
-        setSelectedTotalEstoque(response.data.N_Registros);
-      }
-    } catch (error) {
-      console.log("Não foi possível requerir as informações: ", error);
-      setSelectedTotalEstoque(0);
-    }
-  };
-
-  const fetchDadosFuncionarios = async (id) => {
-    try {
-      const response = await axios.get(
-        `/api/ServerOne/tableFuncionario/${id}`,
-        { withCredentials: true }
-      );
-      if (response.status === 200) {
-        setSelectedTotalFuncionario(response.data.N_Registros);
-      }
-    } catch (error) {
-      console.log("Não foi possível requerir as informações: ", error);
-      setSelectedTotalFuncionario(0);
-    }
-  };
-
-  const fetchDadosVendas = async (id) => {
-    try {
-      const response = await axios.get(`/api/ServerOne/VendasConcluidas/${id}`, {
-        withCredentials: true,
-      });
-      if (response.status === 200) {
-        const vendas = response.data.InfoTabela || [];
-
-        const vendasFormatadas = [];
-        let vendasDiaAnterior = 0;
-        let totalVendasDia = 0;
-        let diasContados = 0;
-
-        vendas.forEach((venda) => {
-          const totalVendas = parseFloat(venda.total) || 0;
-          const dataVenda = new Date(venda.Data);
-
-          // Acumula as vendas do dia
-          totalVendasDia += totalVendas;
-          diasContados++;
-
-          // Calcula o crescimento
-          const crescimento = vendasDiaAnterior ? totalVendasDia - vendasDiaAnterior : 0;
-
-          vendasFormatadas.push({
-            name: dataVenda.toLocaleDateString(), // Exibe a data
-            total: totalVendasDia,
-            crescimento: crescimento,
-          });
-
-          vendasDiaAnterior = totalVendasDia;
-
-          // Reseta após 30 dias
-          if (diasContados >= 30) {
-            vendasFormatadas.push({
-              name: `Resetado - ${dataVenda.toLocaleDateString()}`,
-              total: totalVendasDia,
-              crescimento: 0,
-            });
-
-            totalVendasDia = 0; // Reset vendas
-            diasContados = 0; // Reinicia contagem dos dias
-          }
-        });
-        setSelectedTotalVenda(response.data.N_Registros)
-        setVendasCrescimento(vendasFormatadas); // Atualiza os dados
-      }
-    } catch (error) {
-      console.log("Erro ao carregar vendas:", error);
-      setVendasCrescimento([]); // Reseta em caso de erro
-    }
-  };
-
-  const CustomizedRectangle = (props) => {
-    const { formattedGraphicalItems } = props;
-    const firstSeries = formattedGraphicalItems[0];
-    const secondSeries = formattedGraphicalItems[1];
-
-    return firstSeries?.props?.points.map((firstSeriesPoint, index) => {
-      const secondSeriesPoint = secondSeries?.props?.points[index];
-      const yDifference = firstSeriesPoint.y - secondSeriesPoint.y;
-
-      return (
-        <Rectangle
-          key={firstSeriesPoint.payload.name}
-          width={10}
-          height={yDifference}
-          x={secondSeriesPoint.x - 5}
-          y={secondSeriesPoint.y}
-          fill={yDifference > 0 ? 'red' : yDifference < 0 ? 'green' : 'none'}
-        />
-      );
-    });
-  };
-
-  const fetchDadosHistoricLogs = async () => {
-    try {
-      const response = await axios.get(
-        `/api/ServerTwo/EmpresaHistoricLogs`,
-        { withCredentials: true }
-      );
-      setSelectedTotalLogs(response.data.N_Registros);
-    } catch (err) {
-      console.log(err);
-      setSelectedTotalLogs(0);
-    }
-  };
-
-  const fetchDadosFuncionariosPorTipoUser = async (id) => {
-    try {
-      const response = await axios.get(
-        `/api/ServerOne/tableFuncionario/${id}`,
-        {
-          withCredentials: true,
-        }
-      );
-      if (response.status === 200) {
-        const funcionarioInfo = response.data.InfoTabela;
-
-        // Contar funcionários por tipo de usuário
-        const tipoUsuarioCount = funcionarioInfo.reduce((acc, funcionario) => {
-          const tipo = funcionario.TypeUser;
-          if (acc[tipo]) {
-            acc[tipo] += 1;
-          } else {
-            acc[tipo] = 1;
-          }
-          return acc;
-        }, {});
-
-        // Preparar os dados para o gráfico de pizza
-        const tipoUsuarioData = Object.keys(tipoUsuarioCount).map((tipo) => ({
-          name: tipo,
-          value: tipoUsuarioCount[tipo],
-        }));
-
-        setTypeUserData(tipoUsuarioData); // Atualiza o estado com os dados formatados
-      }
-    } catch (error) {
-      console.error("Erro ao buscar dados de tipos de usuários:", error);
-      setTypeUserData([]); // Garante que o estado seja atualizado, mesmo com erro
-    }
-  };
-
-  const fetchDadosFinanceiros = async (id) => {
-    try {
-      const [receitasResponse, despesasResponse] = await Promise.all([
-        axios.get(`/api/ServerOne/tablereceitas/${id}`, {
-          withCredentials: true,
-        }),
-        axios.get(`/api/ServerOne/tabledespesas/${id}`, {
-          withCredentials: true,
-        }),
-      ]);
-
-      const receitas = receitasResponse.data.InfoTabela || [];
-      const despesas = despesasResponse.data.InfoTabela || [];
-
-      const fluxo = calcularFluxoCaixa(receitas, despesas);
-      setFluxoCaixa(fluxo);
-    } catch (error) {
-      console.error("Erro ao buscar dados financeiros:", error);
-      setFluxoCaixa([]);
-    }
-  };
-
-  const calcularFluxoCaixa = (receitas, despesas) => {
-    const meses = [
-      "Janeiro",
-      "Fevereiro",
-      "Março",
-      "Abril",
-      "Maio",
-      "Junho",
-      "Julho",
-      "Agosto",
-      "Setembro",
-      "Outubro",
-      "Novembro",
-      "Dezembro",
-    ];
-
-    // Agregando valores por mês
-    const receitasPorMes = receitas.reduce((acc, item) => {
-      if (item.DataExpiracao) {
-        const mes = new Date(item.DataExpiracao).getMonth();
-        const valor = parseFloat(item.Valor) || 0;
-        acc[mes] = (acc[mes] || 0) + valor;
-      }
-      return acc;
-    }, {});
-
-    const despesasPorMes = despesas.reduce((acc, item) => {
-      if (item.DataExpiracao) {
-        const mes = new Date(item.DataExpiracao).getMonth();
-        const valor = parseFloat(item.Valor) || 0;
-        acc[mes] = (acc[mes] || 0) + valor;
-      }
-      return acc;
-    }, {});
-
-    // Identificar meses relevantes
-    const mesesRelevantes = Object.keys({
-      ...receitasPorMes,
-      ...despesasPorMes,
-    }).map(Number); // Converte as chaves para números
-
-    // Construir os dados do fluxo de caixa para os meses relevantes
-    return mesesRelevantes.map((mes) => ({
-      name: meses[mes], // Nome do mês
-      receitas: receitasPorMes[mes] || 0,
-      despesas: despesasPorMes[mes] || 0,
-      fluxoCaixa: (receitasPorMes[mes] || 0) - (despesasPorMes[mes] || 0),
-    }));
-  };
-
-  // Verificação do token de autenticação
-  useEffect(() => {
-    const verifyToken = async () => {
-      try {
-        const response = await axios.get("/api/ServerTwo/verifyToken", {
-          withCredentials: true,
-        });
-
-        if (typeof response.data.token === "string") {
-          const decodedToken = jwtDecode(response.data.token);
-          setUserInfo(decodedToken);
-        } else {
-          console.error("Token não é uma string:", response.data.token);
-          navigate("/");
-        }
-      } catch (error) {
-        console.error("Token inválido", error);
-        navigate("/login");
-      }
-    };
-
-    verifyToken();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (userInfo.TypeUser === "Gestor" && userInfo.Status === "NO") {
-      return;
-    } else if (userInfo.id_EmpresaDb) {
-      fetchDadosFinanceiros(userInfo.id_EmpresaDb);
-      fetchDadosEstoque(userInfo.id_EmpresaDb);
-      fetchDadosFuncionarios(userInfo.id_EmpresaDb);
-      fetchDadosVendas(userInfo.id_EmpresaDb);
-      fetchDadosHistoricLogs();
-      fetchDadosFuncionariosPorTipoUser(userInfo.id_EmpresaDb);
-    }
-  }, [userInfo.TypeUser, userInfo.id_EmpresaDb]);
-
-  // Verificar se a empresa está ativa
-  if (userInfo.ValoresNull === true) {
-    navigate("/Cad_empresa");
-  } else if (userInfo.Status === "NO") {
-    return (
-      <SideBarPage>
-        <main>
-          <div className="BoxMensagem-DB">
-            <h1 className="BoasVindasMensagem-DB">Seja Bem Vindo(a)!</h1>
-            <p className="PMensagem-DB">
-              {userInfo.Nome_user}, sua empresa não está autorizada. Entre em
-              contato conosco via e-mail do sistema ou no nosso número de
-              WhatsApp: (19)98171-2080.
-            </p>
-          </div>
-        </main>
-      </SideBarPage>
-    );
-  }
+  const COLORS_GRAFICO = [
+    "#FF8042",
+    "#00C49F",
+    "#FFBB28",
+    "#0088FE",
+    "#FF00FF",
+    "#40E0D0",
+  ];
 
   return (
     <SideBarPage>
@@ -449,8 +181,8 @@ const COLORS = {
             <div className="graficosDashboard">
               <div className="charts">
                 <ResponsiveContainer width="100%" height={300}>
-                <h3 style={{ textAlign: 'center' }}>Panorama Financeiro</h3>
-                  <LineChart data={fluxoCaixa}>
+                  <h3 style={{ textAlign: "center" }}>Panorama Financeiro</h3>
+                  <LineChart data={fluxoCaixaExemplo}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -480,12 +212,12 @@ const COLORS = {
               </div>
               <div className="charts">
                 <ResponsiveContainer width="100%" height={300}>
-                <h3 style={{ textAlign: 'center' }}>Funcionários</h3>
+                  <h3 style={{ textAlign: "center" }}>Funcionários</h3>
                   <PieChart>
                     <Pie
                       activeIndex={activeIndex}
                       activeShape={renderActiveShape}
-                      data={typeUserData} // Passa os dados formatados para o gráfico
+                      data={typeUserDataExemplo} // Passa os dados formatados para o gráfico
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -494,8 +226,11 @@ const COLORS = {
                       dataKey="value"
                       onMouseEnter={(_, index) => setActiveIndex(index)} // Atualiza o estado ao passar o mouse
                     >
-                      {typeUserData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS_GRAFICO[index % COLORS_GRAFICO.length]} />
+                      {typeUserDataExemplo.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS_GRAFICO[index % COLORS_GRAFICO.length]}
+                        />
                       ))}
                     </Pie>
                   </PieChart>

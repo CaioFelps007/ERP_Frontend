@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Menu } from "antd";
 import { Link } from "react-router-dom";
 import { StockOutlined, AreaChartOutlined } from "@ant-design/icons";
@@ -9,45 +9,15 @@ import { RiContactsBook3Fill } from "react-icons/ri";
 import { BsPeopleFill } from "react-icons/bs";
 import { FaMoneyBillTrendUp } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 
 const MenuList = ({ darkTheme }) => {
   const navigate = useNavigate();
-  const [userInfo, setUserInfo] = useState("");
 
-  useEffect(() => {
-    const verifyToken = async () => {
-      try {
-        const response = await axios.get("/api/ServerTwo/verifyToken", {
-          withCredentials: true,
-        });
-
-        if (typeof response.data.token === "string") {
-          const decodedToken = jwtDecode(response.data.token);
-          setUserInfo(decodedToken);
-        } else {
-          console.error("Token não é uma string:", response.data.token);
-          navigate("/login");
-        }
-      } catch (error) {
-        console.error("Token inválido", error);
-        navigate("/login");
-      }
-    };
-
-    verifyToken();
-  }, [navigate]);
-
-  const handleNavigation = (path) => {
-    navigate(path, {
-      state: {
-        userName: userInfo.Nome_user,
-        userId: userInfo.id_user,
-        id_EmpresaDb: userInfo.id_EmpresaDb,
-      },
-    });
-  };
+  // Simulação de um usuário (Remover qualquer parte de back-end ou autenticação)
+  const [userInfo, setUserInfo] = useState({
+    TypeUser: "Gestor", // Tipo de usuário (Simulado)
+    Status: "OK", // Status do usuário (Simulado)
+  });
 
   const items = [
     {
@@ -74,11 +44,6 @@ const MenuList = ({ darkTheme }) => {
       key: "logs",
       icon: <RiContactsBook3Fill />,
       label: <Link to="/logsEmpresa">Logs</Link>,
-    },
-    {
-      key: "logsAdmin",
-      icon: <RiContactsBook3Fill />,
-      label: <Link to="/logsAdmin">Logs</Link>,
     },
     {
       key: "funcionario",
@@ -147,17 +112,6 @@ const MenuList = ({ darkTheme }) => {
       ],
     },
     {
-      key: "financeiroForVenda",
-      icon: <FaMoneyBillTrendUp />,
-      label: "Financeiro",
-      children: [
-        {
-          key: "fornecedores",
-          label: <Link to="/fornecedores"> Fornecedores </Link>,
-        },
-      ],
-    },
-    {
       key: "vendas",
       icon: <AreaChartOutlined />,
       label: "Vendas",
@@ -183,72 +137,15 @@ const MenuList = ({ darkTheme }) => {
       ],
     },
     {
-      key: "VendasForVenda",
-      icon: <AreaChartOutlined />,
-      label: "Vendas",
-      children: [
-        {
-          key: "gestao_de_pedidos",
-          label: <Link to="/gestaoVendas"> Gestão de Pedidos </Link>,
-        },
-        {
-          key: "pedidos_cancelados",
-          label: <Link to="/pedidoscancelados"> Pedidos Cancelados </Link>,
-        },
-        {
-          key: "historico_de_vendas",
-          label: <Link to="/histVendas">Histórico de Vendas</Link>,
-        },
-      ],
-    },
-    {
-      key: "VendasForGerente",
-      icon: <AreaChartOutlined />,
-      label: "Vendas",
-      children: [
-        { key: "clientes", label: <Link to="/clientes"> Clientes </Link> },
-        {
-          key: "gestao_de_pedidos",
-          label: <Link to="/gestaoVendas"> Gestão de Pedidos </Link>,
-        },
-        {
-          key: "pedidos_cancelados",
-          label: <Link to="/pedidoscancelados"> Pedidos Cancelados </Link>,
-        },
-        {
-          key: "historico_de_vendas",
-          label: <Link to="/histVendas">Histórico de Vendas</Link>,
-        },
-      ],
-    },
-    {
-      key: "Caixa",
-      icon: <MdLocalAtm />,
-      label: "Caixa",
-      children: [
-        { key: "caixa", label: <Link to="/caixa"> Caixa </Link> },
-        {
-          key: "fluxo_de_caixa",
-          label: <Link to="/fluxoCaixa"> Fluxo de Caixa</Link>,
-        },
-      ],
-    },
-    {
       key: "Logout",
       icon: <MdLogout />,
       label: "Logout",
-      onClick: () => handleNavigation("/logout"),
+      onClick: () => navigate("/logout"),
     },
   ];
 
   const menuAccess = {
-    SuperAdmin: [
-      "dashboardAdmin",
-      "email",
-      "perfil",
-      "logsAdmin",
-      "Logout",
-    ],
+    SuperAdmin: ["dashboardAdmin", "email", "perfil", "logs", "Logout"],
     Gestor: [
       "dashboard",
       "email",
@@ -260,62 +157,38 @@ const MenuList = ({ darkTheme }) => {
       "vendas",
       "Logout",
     ],
-    Socio: [
-      "dashboard",
-      "email",
-      "perfil",
-      "logs",
-      "financeiro",
-      "estoque",
-      "funcionario",
-      "vendas",
-      "Logout",
-    ],
-    Gerente: [
-      "logs",
-      "funcionario",
-      "VendasForGerente",
-      "email",
-      "perfil",
-      "Logout",
-      "fornecedores",
-    ],
-    Caixa: ["email", "Logout", "perfil", "Caixa"],
-    Estoque: ["email", "Logout", "perfil", "estoque"],
-    Venda: ["email", "Logout", "perfil", "VendasForVenda"],
-    Financeiro: ["dashboard", "email", "Logout", "perfil", "financeiro"],
-    Beta_gestor: [
-      "dashboard",
-      "email",
-      "perfil",
-      "Logout",
-    ],
+    Gerente: ["logs", "funcionario", "vendas", "email", "perfil", "Logout"],
+    // Outros tipos de usuário podem ser adicionados aqui
   };
 
   const filteredItems = items.filter((item) => {
     const userRole = userInfo?.TypeUser; // Papel do usuário
 
-    if (userRole === 'Gestor' && userInfo.Status === "NO") {
-      return (
-        menuAccess["Beta_gestor"]?.includes(item.key) ||
-        (item.children &&
-          item.children.some((child) => menuAccess["Beta_gestor"]?.includes(child.key)))
-      );
-    } else {
-      return (
-        menuAccess[userRole]?.includes(item.key) ||
-        (item.children &&
-          item.children.some((child) => menuAccess[userRole]?.includes(child.key)))
-      );
-    }
+    return (
+      menuAccess[userRole]?.includes(item.key) ||
+      (item.children &&
+        item.children.some((child) =>
+          menuAccess[userRole]?.includes(child.key)
+        ))
+    );
   });
 
   return (
-    <Menu
-      theme={darkTheme ? "dark" : "light"}
-      className="SideBar-Menu-Bar"
-      items={filteredItems}
-    />
+    <Menu theme={darkTheme ? "dark" : "light"} className="SideBar-Menu-Bar">
+      {filteredItems.map((item) =>
+        item.children ? (
+          <Menu.SubMenu key={item.key} icon={item.icon} title={item.label}>
+            {item.children.map((child) => (
+              <Menu.Item key={child.key}>{child.label}</Menu.Item>
+            ))}
+          </Menu.SubMenu>
+        ) : (
+          <Menu.Item key={item.key} icon={item.icon} onClick={item.onClick}>
+            {item.label}
+          </Menu.Item>
+        )
+      )}
+    </Menu>
   );
 };
 

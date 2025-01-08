@@ -1,76 +1,49 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { jwtDecode } from "jwt-decode";
-import "./caixaEntradaSaida.css";
 import { FaPen } from "react-icons/fa";
 import { RiInboxUnarchiveFill, RiInboxArchiveFill } from "react-icons/ri";
 import LogoVenturo from "../../images/LogoVenturoBlackV.png";
 import SideBarPage from "../../components/Sidebar/SideBarPage";
-
 // Componentes
 import EmailPopup from "./popupemail";
 import { converterDataHora } from "../../utils/dateUtils";
+import "./caixaEntradaSaida.css";
 
 const Caixa_Saida = () => {
   const navigate = useNavigate();
-  const [userInfo, setUserInfo] = useState(null);
-  const [emails, setEmails] = useState([]);
-  const [protocoloErro, setProtocoloErro] = useState(null);
-  const [msgErro, setMsgErro] = useState(null);
+  const [emails] = useState([
+    {
+      id: 1,
+      Destinatario: "destinatario1@example.com",
+      Assunto: "Assunto do email 1",
+      Mensagem: "Conteúdo do e-mail 1",
+      Arquivo: "documento1.pdf",
+      TimeStamp: "2025-01-08T12:00:00Z",
+    },
+    {
+      id: 2,
+      Destinatario: "destinatario2@example.com",
+      Assunto: "Assunto do email 2",
+      Mensagem: "Conteúdo do e-mail 2",
+      Arquivo: null,
+      TimeStamp: "2025-01-07T10:00:00Z",
+    },
+    // Adicione mais e-mails conforme necessário
+  ]);
   const [openedEmailId, setOpenedEmailId] = useState(null);
-  const [activeButton, setActiveButton] = useState('saida'); // Estado para o botão ativo
   const [isPopupOpen, setPopupOpen] = useState(false);
+  const [activeButton, setActiveButton] = useState("saida");
 
   const openPopup = () => setPopupOpen(true);
   const closePopup = () => setPopupOpen(false);
-
-  useEffect(() => {
-    const verifyToken = async () => {
-      try {
-        const response = await axios.get('/api/ServerTwo/verifyToken', { withCredentials: true });
-
-        if (typeof response.data.token === 'string') {
-          const decodedToken = jwtDecode(response.data.token);
-          setUserInfo(decodedToken);
-        } else {
-          console.error('Token não é uma string:', response.data.token);
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Token inválido', error);
-        navigate('/login');
-      }
-    };
-    verifyToken();
-  }, [navigate]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('/api/ServerOne/caixa_saida', {
-          withCredentials: true
-        });
-        setEmails(response.data);
-      } catch (err) {
-        setProtocoloErro("500");
-        setMsgErro("Não foi possível fazer a requisição da sua caixa de saída");
-      }
-    };
-    fetchData();
-  }, []);
 
   const toggleEmail = (id) => {
     setOpenedEmailId(openedEmailId === id ? null : id);
   };
 
-  const excluirEmail = async (id) => {
-    try {
-      await axios.put(`/api/ServerOne/excluir_email_remetente`, { id });
-      setEmails(emails.filter(email => email.id !== id));
-    } catch (err) {
-      console.error("Erro ao excluir o e-mail", err);
-    }
+  const excluirEmail = (id) => {
+    // Simulando a exclusão do e-mail
+    setEmails(emails.filter((email) => email.id !== id));
   };
 
   const Cards = () => (
@@ -100,7 +73,7 @@ const Caixa_Saida = () => {
                   <p>{email.Mensagem}</p>
                   {email.Arquivo && (
                     <a
-                      href={`/api/ServerOne/uploads/Docs/${email.Arquivo}`}
+                      href={`/uploads/Docs/${email.Arquivo}`}
                       className="email-attachment"
                     >
                       {email.Arquivo}
@@ -112,7 +85,6 @@ const Caixa_Saida = () => {
                   >
                     Excluir
                   </button>{" "}
-                  {/* Botão de exclusão */}
                 </div>
               )}
             </div>
@@ -124,6 +96,7 @@ const Caixa_Saida = () => {
       )}
     </div>
   );
+
   return (
     <SideBarPage>
       <div className="scroll-despesas">
@@ -148,20 +121,22 @@ const Caixa_Saida = () => {
               </button>
 
               <button
-                className={`btn-caixas ${activeButton === "entrada" ? "active" : ""
-                  }`}
+                className={`btn-caixas ${
+                  activeButton === "entrada" ? "active" : ""
+                }`}
                 onClick={() => {
                   setActiveButton("entrada");
                   navigate("/email_entrada");
                 }}
               >
-                <RiInboxArchiveFill style={{ height: 18, width: 18 }} /> Caixa de
-                Entrada
+                <RiInboxArchiveFill style={{ height: 18, width: 18 }} /> Caixa
+                de Entrada
               </button>
 
               <button
-                className={`btn-caixas ${activeButton === "saida" ? "active" : ""
-                  }`}
+                className={`btn-caixas ${
+                  activeButton === "saida" ? "active" : ""
+                }`}
                 onClick={() => {
                   setActiveButton("saida");
                   navigate("/email_saida");
@@ -171,21 +146,14 @@ const Caixa_Saida = () => {
                 de Saída
               </button>
 
-              {isPopupOpen && (
-                <EmailPopup Email={userInfo?.Email} onClose={closePopup} />
-              )}
+              {isPopupOpen && <EmailPopup onClose={closePopup} />}
             </div>
 
             <div className="Conteudo">
-              {protocoloErro ? (
-                <div>
-                  Erro {protocoloErro}: {msgErro}
-                </div>
-              ) : (
-                <Cards />
-              )}
+              <Cards />
             </div>
-          </div> </div>
+          </div>
+        </div>
       </div>
     </SideBarPage>
   );

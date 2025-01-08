@@ -1,23 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { FaFileExport } from "react-icons/fa";
 import "./cad_produto.css";
-import { useNavigate } from "react-router-dom";
 import { BsSearch } from "react-icons/bs";
-import { FaPenToSquare, FaPlus, FaTrashCan } from "react-icons/fa6";
+import { FaPenToSquare, FaPlus } from "react-icons/fa6";
 import { Button, Modal } from "react-bootstrap";
 import SideBarPage from "../../components/Sidebar/SideBarPage";
-import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 import * as XLSX from "xlsx"; // Adiciona a importação da biblioteca xlsx
 
 function RegistroProduto() {
-  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [showModalEdit, setShowModalEdit] = useState(false);
   const [showModalInfo, setShowModalInfo] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [ProductsEstoque, setSelectedEstoque] = useState([]);
-  const [userInfo, setUserInfo] = useState({});
   const [searchTerm, setSearchTerm] = useState(""); // Estado para armazenar o termo de pesquisa
   const [RegisterProdutos, setRegisterProdutos] = useState({
     Nome: "",
@@ -38,9 +33,7 @@ function RegistroProduto() {
     setShowModalInfo(true);
   };
 
-  const handleCloseInfo = () => {
-    window.location.reload(); // Recarrega a página
-  };
+  const handleCloseInfo = () => setShowModalInfo(false);
 
   const handleShowEdit = (product) => {
     setSelectedProduct(product);
@@ -60,45 +53,8 @@ function RegistroProduto() {
   const handleCloseEdit = () => setShowModalEdit(false);
 
   useEffect(() => {
-    verifyToken();
+    // Removi a lógica de verificação de token
   }, []);
-
-  useEffect(() => {
-    if (userInfo.id_EmpresaDb) {
-      fetchDados(userInfo.id_EmpresaDb);
-    }
-  }, [userInfo]);
-
-  const verifyToken = async () => {
-    try {
-      const response = await axios.get("/api/ServerTwo/verifyToken", {
-        withCredentials: true,
-      });
-      if (typeof response.data.token === "string") {
-        const decodedToken = jwtDecode(response.data.token);
-        setUserInfo(decodedToken);
-      } else {
-        console.error("Token não é uma string:", response.data.token);
-        navigate("/");
-      }
-    } catch (error) {
-      console.error("Token inválido", error);
-      navigate("/login");
-    }
-  };
-
-  const fetchDados = async (id) => {
-    try {
-      const response = await axios.get(`/api/ServerOne/tableEstoque/${id}`, {
-        withCredentials: true,
-      });
-      if (response.status === 200) {
-        setSelectedEstoque(response.data.InfoTabela);
-      }
-    } catch (error) {
-      console.log("Não foi possível requerir as informações: ", error);
-    }
-  };
 
   // Filtro dos produtos
   const handleSearchChange = (e) => {
@@ -122,85 +78,6 @@ function RegistroProduto() {
   const handleFileChange = (e) => {
     const { name } = e.target;
     setRegisterProdutos({ ...RegisterProdutos, [name]: e.target.files[0] });
-  };
-
-  // UPDATE DO PRODUTO
-  const updateProdutoAPI = async (e) => {
-    e.preventDefault();
-    const data = new FormData();
-
-    // Adiciona todos os campos do produto ao FormData
-    Object.entries(RegisterProdutos).forEach(([key, value]) => {
-      if (value) data.append(key, value);
-    });
-
-    // Inclui o ID do banco de dados (ou usuário)
-    const id = selectedProduct.Codigo;
-    const database_id = userInfo.id_EmpresaDb
-      ? userInfo.id_EmpresaDb
-      : userInfo.id_user;
-
-    // Adiciona o database_id ao FormData
-    data.append("database_id", database_id);
-
-    // Adiciona o ID do usuário para identificação
-    data.append("userId", userInfo.id_user);
-    data.append("userName", userInfo.Nome_user);
-
-    try {
-      // Faz a requisição PUT para atualizar o produto
-      await axios.put(`/api/ServerOne/updateProduct/${id}`, data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        withCredentials: true,
-      });
-
-      alert("Produto atualizado com sucesso!");
-      handleCloseEdit();
-      fetchDados(userInfo.id_EmpresaDb);
-    } catch (error) {
-      console.error("Erro ao atualizar produto:", error);
-      alert("Erro ao atualizar produto.");
-    }
-  };
-
-  // REGISTRO DO PRODUTO
-  const Registro_Produto = async (e) => {
-    e.preventDefault();
-
-    const data = new FormData();
-
-    // Apenas adicionar os campos que não são nulos
-    Object.keys(RegisterProdutos).forEach((key) => {
-      if (RegisterProdutos[key] !== "" && RegisterProdutos[key] !== null) {
-        data.append(key, RegisterProdutos[key]);
-      }
-    });
-
-    // Adiciona o ID do usuário para identificação
-    data.append("userId", userInfo.id_user);
-    data.append("userName", userInfo.Nome_user);
-
-    const id = userInfo.id_EmpresaDb ? userInfo.id_EmpresaDb : userInfo.id_user;
-
-    try {
-      const response = await axios.post(
-        `/api/ServerTwo/RegistrarProduto/${id}`,
-        data,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      alert("Informações enviadas com sucesso!");
-      window.location.reload();
-    } catch (error) {
-      console.error("Erro ao enviar formulário:", error);
-      alert("Erro ao enviar formulário.");
-    }
   };
 
   // Função para exportar para Excel
@@ -228,7 +105,7 @@ function RegistroProduto() {
                 Editar
                 <FaPenToSquare />
               </button>
-              <button className="Button-Menu">
+              <button className="Button-Menu" onClick={exportToExcel}>
                 Exportar
                 <FaFileExport />
               </button>
@@ -338,7 +215,7 @@ function RegistroProduto() {
               <div className="HeaderModal">
                 <h1>Registrar Produto</h1>
               </div>
-              <form onSubmit={Registro_Produto} >
+              <form>
                 <input
                   type="text"
                   name="Nome"
@@ -417,7 +294,7 @@ function RegistroProduto() {
                 <h1>Editar Produto</h1>
               </div>
               <div className="FormsEditProdut">
-                <form onSubmit={updateProdutoAPI}>
+                <form>
                   <input
                     type="text"
                     name="Nome"
@@ -462,16 +339,10 @@ function RegistroProduto() {
                   />
 
                   <div className="popup-footer">
-                    <button
-                      variant="primary"
-                      type="submit"
-                    >
+                    <button variant="primary" type="submit">
                       Salvar
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleCloseEdit}
-                    >
+                    <button type="button" onClick={handleCloseEdit}>
                       Fechar
                     </button>
                   </div>
@@ -518,15 +389,14 @@ function RegistroProduto() {
 
                   <div className="ImgEstoqueProduct">
                     <img
-                      src={`/api/ServerOne/uploads/ProdutosIMG/${selectedProduct.Imagem}`}
-
+                      src={selectedProduct.Imagem ? selectedProduct.Imagem : ""}
                       className="Img-CadPro"
                     />
                   </div>
                 </div>
               </div>
             )}
-          </Modal>{" "}
+          </Modal>
         </div>
       </main>
     </SideBarPage>
